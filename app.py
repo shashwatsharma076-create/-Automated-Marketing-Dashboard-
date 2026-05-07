@@ -116,13 +116,15 @@ def generate_marketing_data():
     
     df = pd.DataFrame(data)
     
-    # Ensure logical relationships
-    df['clicks'] = df['clicks'].apply(lambda x: max(1, min(x, df.loc[df.index[df['clicks']==x][0] if len(df.loc[df['clicks']==x])>0 else 0, 'impressions'] if 'impressions' in df.columns else x)))
-    df['ctr'] = (df['clicks'] / df['impressions'] * 100).round(2)
-    df['conversion_rate'] = (df['conversions'] / df['clicks'] * 100).round(2)
-    df['cpc'] = (df['spend'] / df['clicks']).round(2)
-    df['cpa'] = (df['spend'] / df['conversions']).round(2)
-    df['roas'] = (df['revenue'] / df['spend']).round(2)
+    # Ensure logical relationships: clicks >= 1 and clicks <= impressions
+    df['clicks'] = df.apply(lambda row: max(1, min(row['clicks'], row['impressions'])), axis=1)
+
+    # Safe calculations - handle division by zero
+    df['ctr'] = np.where(df['impressions'] > 0, (df['clicks'] / df['impressions'] * 100).round(2), 0)
+    df['conversion_rate'] = np.where(df['clicks'] > 0, (df['conversions'] / df['clicks'] * 100).round(2), 0)
+    df['cpc'] = np.where(df['clicks'] > 0, (df['spend'] / df['clicks']).round(2), 0)
+    df['cpa'] = np.where(df['conversions'] > 0, (df['spend'] / df['conversions']).round(2), 0)
+    df['roas'] = np.where(df['spend'] > 0, (df['revenue'] / df['spend']).round(2), 0)
     
     return df.sort_values('date').reset_index(drop=True)
 
@@ -212,7 +214,7 @@ def render_metric_card(title, value, change, prefix="", suffix="", color="blue")
     </div>
     """, unsafe_allow_html=True)
 
-def render_kpi_row(df, col1, col2):
+def render_kpi_row(df):
     """Render KPI metrics row"""
     # Calculate metrics
     total_impressions = df['impressions'].sum()
@@ -225,7 +227,7 @@ def render_kpi_row(df, col1, col2):
     
     # Display in columns
     c1, c2, c3, c4 = st.columns(4)
-    
+
     with c1:
         render_metric_card("Total Impressions", total_impressions, np.random.uniform(-5, 15), color="blue")
     with c2:
@@ -233,20 +235,20 @@ def render_kpi_row(df, col1, col2):
     with c3:
         render_metric_card("Conversions", total_conversions, np.random.uniform(0, 20), color="orange")
     with c4:
-        render_metric_card("Revenue", total_revenue, "$", "", color="green")
-    
+        render_metric_card("Revenue", total_revenue, np.random.uniform(-5, 15), "$", "", color="green")
+
     st.markdown("---")
-    
+
     c5, c6, c7, c8 = st.columns(4)
-    
+
     with c5:
-        render_metric_card("CTR", avg_ctr, np.random.uniform(-2, 5), suffix="%", color="blue")
+        render_metric_card("CTR", avg_ctr, np.random.uniform(-2, 5), "", "%", color="blue")
     with c6:
-        render_metric_card("Spend", total_spend, "$", "", color="red")
+        render_metric_card("Spend", total_spend, np.random.uniform(-3, 8), "$", "", color="red")
     with c7:
-        render_metric_card("ROAS", avg_roas, "x", "", color="green")
+        render_metric_card("ROAS", avg_roas, np.random.uniform(-5, 20), "", "x", color="green")
     with c8:
-        render_metric_card("Cost/Conversion", total_spend/total_conversions, "$", "", color="orange")
+        render_metric_card("Cost/Conversion", total_spend/total_conversions, np.random.uniform(-5, 10), "$", "", color="orange")
 
 # ============================================================================
 # CHARTS
@@ -344,7 +346,7 @@ def page_overview(df, social_df):
     st.markdown("## 📊 Overview Dashboard")
     
     # KPI Row
-    render_kpi_row(df, st, 1, 1)
+    render_kpi_row(df)
     
     st.markdown("---")
     
