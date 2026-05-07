@@ -254,15 +254,16 @@ def render_kpi_row(df):
 # CHARTS
 # ============================================================================
 
-def render_line_chart(df, x_col, y_col, title, color=None):
+def render_line_chart(df, x_col, y_col, title, line_color=None):
     """Render line chart"""
     fig = px.line(
         df, x=x_col, y=y_col,
         title=title,
         template="plotly_dark",
-        color=color,
         markers=True
     )
+    if line_color:
+        fig.update_traces(line=dict(color=line_color))
     fig.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
@@ -360,12 +361,12 @@ def page_overview(df, social_df):
             'clicks': 'sum',
             'conversions': 'sum'
         }).reset_index()
-        render_line_chart(daily_df, 'date', 'impressions', 'Daily Impressions Trend', '#667eea')
+        render_line_chart(daily_df, 'date', 'impressions', 'Daily Impressions Trend', line_color='#667eea')
     
     with c2:
         # Revenue over time
         revenue_df = df.groupby('date')['revenue'].sum().reset_index()
-        render_line_chart(revenue_df, 'date', 'revenue', 'Revenue Over Time', '#11998e')
+        render_line_chart(revenue_df, 'date', 'revenue', 'Revenue Over Time', line_color='#11998e')
     
     st.markdown("---")
     
